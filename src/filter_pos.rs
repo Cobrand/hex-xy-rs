@@ -69,7 +69,7 @@ mod tests {
     }
 
     #[test]
-    fn test_in_star(){
+    fn test_in_cone(){
         let v = Position::new(0,0).in_star(2);
         assert_eq!(v.len(),13);
     }
