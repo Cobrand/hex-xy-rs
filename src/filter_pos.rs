@@ -49,6 +49,10 @@ impl Position {
 
     pub fn in_line(self,direction:MainDirection,range:i32) -> Vec<Position> {
         let mut vec : Vec<Position> = Vec::with_capacity(range.abs() as usize + 1);
+        let (direction,range) = BaseVec(direction,range).normalize().raw();
+        for i in 0..range+1 {
+            vec.push(self + direction.to_pos() * i);
+        }
         vec
     }
 }
