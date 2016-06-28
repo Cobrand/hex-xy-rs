@@ -38,12 +38,22 @@ impl Position {
         vec
     }
 
-    pub fn in_cone(self,range:i32,direction:SubDirection) -> Vec<Position> {
+    pub fn in_cone(self,direction:MainDirection,range:i32) -> Vec<Position> {
+        let (direction,range) = BaseVec(direction,range).normalize().raw();
         let n = (range + 1) as usize;
-        let mut vec : Vec<Position> = Vec::with_capacity((n + 1) * n / 2 );
-        //match direction {
-        // SubDirection::
-        // }
+        let mut vec : Vec<Position> = Vec::with_capacity((n+1) * (n+1));
+        for r in 0..range+1 { // r = current_range
+            let temp_pos = self + direction.to_pos() * r ;
+            vec.push(temp_pos);
+            if r != 0 {
+                use Rotation::{CounterClockwise as CCW, Clockwise as CW};
+                let (direction_1,direction_2) = (direction.rotate(CW).rotate(CW),direction.rotate(CCW).rotate(CCW));
+                for i in 1..r+1 {
+                    vec.push(temp_pos + direction_1.to_pos() * i);
+                    vec.push(temp_pos + direction_2.to_pos() * i);
+                }
+            }
+        }
         vec
     }
 
@@ -60,6 +70,17 @@ impl Position {
 #[cfg(test)]
 mod tests {
     use pos::* ;
+
+    #[test]
+    fn test_in_cone(){
+        let v = Position::new(0,0).in_cone(MainDirection::E,1);
+        assert!(v.contains(&Position::new(0,0)));
+        assert!(v.contains(&Position::new(1,0)));
+        assert!(v.contains(&Position::new(0,1)));
+        assert!(v.contains(&Position::new(1,-1)));
+        assert_eq!(v.len(),4);
+    }
+
     #[test]
     fn test_in_range(){
         let v = Position::new(0,0).in_range(2);
@@ -73,8 +94,8 @@ mod tests {
     }
 
     #[test]
-    fn test_in_cone(){
-        let v = Position::new(0,0).in_star(2);
-        assert_eq!(v.len(),13);
+    fn test_in_line(){
+        let v = Position::new(0,0).in_line(MainDirection::NNE,3);
+        assert_eq!(v.len(),4);
     }
 }
