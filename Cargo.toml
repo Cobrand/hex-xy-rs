@@ -1,5 +1,5 @@
 [package]
-name = "hex-xy"
+name = "hexgrid"
 version = "0.0.1"
 authors = ["Cobrand <cobrandw@gmail.com>"]
 
