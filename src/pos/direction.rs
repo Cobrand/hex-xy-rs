@@ -106,9 +106,10 @@ impl Neg for MainDirection {
 pub struct BaseVec(pub MainDirection,pub i32);
 
 /// ```
-/// // use hex-xy::MainDirection::{E,W};
-/// // assert_eq!((E,-3).normalize().raw(),(W,3));
-/// // assert_eq!((W,2).normalize().raw(),(W,2));
+/// use hexgrid::pos::*;
+/// use hexgrid::pos::MainDirection as MD;
+/// assert_eq!(BaseVec(MD::E,-3).normalize().raw(),(MD::W,3));
+/// assert_eq!(BaseVec(MD::W,2).normalize().raw(),(MD::W,2));
 /// ```
 impl BaseVec {
     pub fn normalize(self) -> BaseVec {

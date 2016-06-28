@@ -69,8 +69,7 @@ impl Position {
 
 #[cfg(test)]
 mod tests {
-    use position::* ;
-
+    use pos::* ;
     #[test]
     fn test_in_cone(){
         let v = Position::new(0,0).in_cone(MainDirection::E,1);
