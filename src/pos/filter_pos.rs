@@ -1,5 +1,5 @@
 use std::vec::Vec ;
-use pos::* ;
+use pos::*;
 use std::cmp::{max,min};
 impl Position {
     /// Positions from top-left are added first, to top-right, to finish by bottom-right
@@ -46,7 +46,7 @@ impl Position {
             let temp_pos = self + direction.to_pos() * r ;
             vec.push(temp_pos);
             if r != 0 {
-                use Rotation::{CounterClockwise as CCW, Clockwise as CW};
+                use pos::Rotation::{CounterClockwise as CCW, Clockwise as CW};
                 let (direction_1,direction_2) = (direction.rotate(CW).rotate(CW),direction.rotate(CCW).rotate(CCW));
                 for i in 1..r+1 {
                     vec.push(temp_pos + direction_1.to_pos() * i);
@@ -69,7 +69,7 @@ impl Position {
 
 #[cfg(test)]
 mod tests {
-    use pos::* ;
+    use position::* ;
 
     #[test]
     fn test_in_cone(){

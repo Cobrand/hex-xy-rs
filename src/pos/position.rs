@@ -4,8 +4,6 @@
 //         V
 //
 
-pub use direction::* ;
-
 use std::ops::{Sub,Add,Mul,Neg};
 use std::convert::From;
 

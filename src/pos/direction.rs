@@ -1,5 +1,5 @@
 use std::ops::Neg;
-use pos;
+use pos::*;
 
 #[derive(Copy,Clone,Debug,PartialEq,Eq)]
 pub enum Rotation {
@@ -25,8 +25,8 @@ pub enum MainDirection {
 
 impl MainDirection {
     pub fn rotate(self,rotation:Rotation) -> MainDirection {
-        use Rotation::*;
-        use MainDirection as M;
+        use self::Rotation::*;
+        use self::MainDirection as M;
         match (self,rotation) {
             (M::NNE,Clockwise) | (M::SSE, CounterClockwise) => M::E,
             (M::E,Clockwise)   | (M::SSW, CounterClockwise) => M::SSE,
@@ -37,15 +37,15 @@ impl MainDirection {
         }
     }
 
-    pub fn to_pos(self) -> pos::Position {
-        use MainDirection as M;
+    pub fn to_pos(self) -> Position {
+        use self::MainDirection as M;
         match self {
-            M::NNE => pos::NE,
-            M::E   => pos::E ,
-            M::SSE => pos::SE,
-            M::SSW => pos::SW,
-            M::W   => pos::W ,
-            M::NNW => pos::NW,
+            M::NNE => NE,
+            M::E   => E ,
+            M::SSE => SE,
+            M::SSW => SW,
+            M::W   => W ,
+            M::NNW => NW,
         }
     }
 }
@@ -62,8 +62,8 @@ pub enum SubDirection {
 
 impl SubDirection {
     pub fn rotate(self,rotation:Rotation) -> SubDirection {
-        use Rotation::*;
-        use SubDirection as S;
+        use self::Rotation::*;
+        use self::SubDirection as S;
         match (self,rotation) {
             (S::WNW, Clockwise) | (S::ENE, CounterClockwise) => S::N,
             (S::N  , Clockwise) | (S::ESE, CounterClockwise) => S::ENE,
@@ -75,8 +75,8 @@ impl SubDirection {
     }
 
     pub fn sides(self) -> (MainDirection,MainDirection) {
-        use SubDirection as S;
-        use MainDirection as M;
+        use self::SubDirection as S;
+        use self::MainDirection as M;
         match self {
             S::N =>   (M::NNW,M::NNE),
             S::ENE => (M::NNE,M::E  ),
