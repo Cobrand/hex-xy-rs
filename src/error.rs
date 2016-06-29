@@ -5,6 +5,7 @@ pub type Result<T> = ::std::result::Result<T,Error>;
 pub enum Reason {
     NegativeMapLength,
     OutOfRange,
+    AlreadyOccupied,
     UnknownReason
 }
 
@@ -28,7 +29,10 @@ impl ::std::error::Error for Error {
                 "map was created with a negative length"
             },
             Reason::OutOfRange => {
-                "Want to access something that is not accessible"
+                "want to access something that is not accessible"
+            },
+            Reason::AlreadyOccupied => {
+                "this position is already occupied by something else"
             },
             Reason::UnknownReason => {
                 "this should never happen"

@@ -1,6 +1,7 @@
 use error::{Error,Reason,Result};
 use pos::Position;
 use std::vec::Vec ;
+use std::mem::swap;
 
 pub trait PositionAccessor {
     fn set_position(&mut self,new_position:Position);
@@ -75,6 +76,28 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Clone + Default {
 
     pub fn change_bg(&mut self,position:Position,bg:Bg){
 
+    }
+
+    pub fn replace_content(&mut self,position:Position,new_content:T) -> Result<Option<T>> {
+        let index = try!(self.pos_to_index(position));
+        let mut tmp_value : Option<T> = Some(new_content);
+        let ref mut content : Option<T> = self.contents_slice[index];
+        swap(&mut tmp_value,content);
+        Ok(tmp_value)
+    }
+
+    pub fn create_content(&mut self,position:Position,new_content:T) -> Result<()> {
+        let index = try!(self.pos_to_index(position));
+        let ref mut content = self.contents_slice[index];
+        match *content {
+            None => {
+                *content = Some(new_content);
+                Ok(())
+            },
+            Some(_) => {
+                Err(Error::new(Reason::AlreadyOccupied))
+            }
+        }
     }
 
     pub fn swap_contents(&mut self,pos_1:Position,pos_2:Position) -> Result<()> {
