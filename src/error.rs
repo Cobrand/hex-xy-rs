@@ -4,6 +4,7 @@ pub type Result<T> = ::std::result::Result<T,Error>;
 #[derive(Debug,Copy,Clone)]
 pub enum Reason {
     NegativeMapLength,
+    OutOfRange,
     UnknownReason
 }
 
@@ -26,9 +27,12 @@ impl ::std::error::Error for Error {
             Reason::NegativeMapLength => {
                 "map was created with a negative length"
             },
+            Reason::OutOfRange => {
+                "Want to access something that is not accessible"
+            },
             Reason::UnknownReason => {
                 "this should never happen"
-            }
+            },
         }
     }
 }
