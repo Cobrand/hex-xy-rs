@@ -7,7 +7,7 @@
 use std::ops::{Sub,Add,Mul,Neg};
 use std::convert::From;
 
-#[derive(Copy,Clone,Debug,PartialEq,Eq,Hash)]
+#[derive(Copy,Clone,Debug,PartialEq,Eq,Hash,Default)]
 pub struct Position {
     pub x : i32,
     pub y : i32

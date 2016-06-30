@@ -1,7 +1,7 @@
 use error::{Error,Reason,Result};
 use pos::Position;
 use std::vec::Vec ;
-use std::{slice,iter};
+use std::iter;
 use std::mem::swap;
 
 pub trait PositionAccessor {
@@ -38,7 +38,9 @@ impl<'a,T:'a> iter::Iterator for MapIter<'a,T> {
         match r {
             Err(err) if err == Error::new(Reason::OutOfRange) => None,
             Ok(pos) => {
-                Some((pos,&self.slice[self.current_index]))
+                let current_index = self.current_index;
+                self.current_index += 1 ;
+                Some((pos,&self.slice[current_index]))
             },
             Err(_) => unreachable!()
         }
@@ -250,9 +252,15 @@ mod tests {
     fn routine_test(){
         let mut map : Map<Dummy,Bg> = sample_map();
         let dummy_1 = Dummy{
-            pos:Position::new(-10,0),
+            pos:Position::default(),
             name:String::from("test_dummy_1")
         };
+        let dummy_2 = Dummy {
+            pos:Position::default(),
+            name:String::from("test_dummy_2")
+        };
         map.create_content(Position::new(0,0),dummy_1).unwrap();
+        map.create_content(Position::new(2,0),dummy_2).unwrap();
+        map.swap_contents(Position::new(2,0), Position::new(0,0)).unwrap();
     }
 }
