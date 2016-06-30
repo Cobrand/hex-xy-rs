@@ -178,8 +178,8 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
         }
     }
 
-    pub fn iter_contents(&self) {
-
+    pub fn iter_contents<'a>(&'a self) -> MapIter<'a,Option<T>>{
+        MapIter::new(self.contents_slice.as_ref(),self.length, self.offset)
     }
 }
 
@@ -272,5 +272,9 @@ mod tests {
         map.create_content(Position::new(0,0),dummy_1).unwrap();
         map.create_content(Position::new(2,0),dummy_2).unwrap();
         map.swap_contents(Position::new(2,0), Position::new(0,0)).unwrap();
+        assert_eq!(map.iter_contents()
+                      .filter(|&(_,dummy_option)| dummy_option.is_some())
+                      .count(),
+                   2);
     }
 }
