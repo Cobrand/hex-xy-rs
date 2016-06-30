@@ -185,7 +185,7 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
 
 fn index_to_pos(index:usize,length:(i32,i32),offset:(i32,i32)) -> Result<Position> {
     debug_assert!(length.0 > 0 && length.1 > 0);
-    if index > (length.0 * length.1) as usize {
+    if index >= (length.0 * length.1) as usize {
         Err(Error::new(Reason::OutOfRange))
     } else {
         let y = index as i32 / length.0 ;
@@ -196,7 +196,7 @@ fn index_to_pos(index:usize,length:(i32,i32),offset:(i32,i32)) -> Result<Positio
 
 
 #[test]
-pub fn test_index_to_pos(){
+pub fn test_pos_to_index(){
     let m = self::tests::sample_map();
     assert_eq!(m.pos_to_index(Position::new(-5,-5)).unwrap(),
                0);
@@ -204,17 +204,27 @@ pub fn test_index_to_pos(){
                10);
     assert_eq!(m.pos_to_index(Position::new(-4,-4)).unwrap(),
                11);
+    assert_eq!(m.pos_to_index(Position::new(4,4)).unwrap(),
+               99);
+    assert_eq!(m.pos_to_index(Position::new(4,5)).unwrap_err(),
+               Error::new(Reason::OutOfRange));
+    assert_eq!(m.pos_to_index(Position::new(5,0)).unwrap_err(),
+               Error::new(Reason::OutOfRange));
     assert_eq!(m.pos_to_index(Position::new(-10,0)).unwrap_err(),
                Error::new(Reason::OutOfRange));
 }
 
 #[test]
-pub fn test_pos_to_index(){
+pub fn test_index_to_pos(){
     let m = self::tests::sample_map();
     assert_eq!(m.index_to_pos(0).unwrap(),
                Position::new(-5,-5));
     assert_eq!(m.index_to_pos(11).unwrap(),
                Position::new(-4,-4));
+    assert_eq!(m.index_to_pos(99).unwrap(),
+               Position::new(4,4));
+    assert_eq!(m.index_to_pos(100).unwrap_err(),
+               Error::new(Reason::OutOfRange));
     assert_eq!(m.index_to_pos(150).unwrap_err(),
                Error::new(Reason::OutOfRange));
 }
