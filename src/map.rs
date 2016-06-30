@@ -20,7 +20,43 @@ pub struct MapIter<'a,T:'a>{
     offset: (i32,i32)
 }
 
-impl<'a,T:'a> MapIter<'a,T>{
+pub struct MapIterMut<'a,T:'a>{
+    current_index:usize,
+    slice:&'a mut [T],
+    length: (i32,i32),
+    offset: (i32,i32)
+}
+
+impl<'a,T> MapIterMut<'a,T>{
+    pub fn new(slice:&'a mut [T],length: (i32,i32),offset: (i32,i32)) -> MapIter<'a,T> {
+        MapIter {
+            current_index:0,
+            slice:slice,
+            length:length,
+            offset:offset
+        }
+    }
+}
+
+impl<'a,T> iter::Iterator for MapIterMut<'a,T> {
+    type Item = (Position,&'a mut T) ;
+    fn next(&mut self) -> Option<(Position,&'a mut T)> {
+        let r = index_to_pos(self.current_index, self.length, self.offset);
+        /*match r {
+            Err(err) if err == Error::new(Reason::OutOfRange) => None,
+            Ok(pos) => {
+                let current_index = self.current_index;
+                self.current_index += 1 ;
+                Some((pos,&mut self.slice[current_index]))
+            },
+            Err(_) => unreachable!()
+        }*/
+        // TODO Make it work
+        None        
+    }
+}
+
+impl<'a,T> MapIter<'a,T>{
     pub fn new(slice:&'a [T],length: (i32,i32),offset: (i32,i32)) -> MapIter<'a,T> {
         MapIter {
             current_index:0,
@@ -180,6 +216,10 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
 
     pub fn iter_contents<'a>(&'a self) -> MapIter<'a,Option<T>>{
         MapIter::new(self.contents_slice.as_ref(),self.length, self.offset)
+    }
+
+    pub fn iter_contents_mut<'a>(&'a mut self) -> MapIter<'a,Option<T>>{
+        MapIter::new(self.contents_slice.as_mut(),self.length, self.offset)
     }
 }
 
