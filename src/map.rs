@@ -2,7 +2,7 @@ use error::{Error,Reason,Result};
 use pos::Position;
 use std::vec::Vec ;
 use std::iter;
-use std::mem::{swap,replace};
+use std::mem::replace;
 
 pub trait PositionAccessor {
     fn set_position(&mut self,new_position:Position);
@@ -164,10 +164,7 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
 
     pub fn replace_content(&mut self,position:Position,new_content:T) -> Result<Option<T>> {
         let index = try!(self.pos_to_index(position));
-        let mut tmp_value : Option<T> = Some(new_content);
-        let ref mut content : Option<T> = self.contents_slice[index];
-        swap(&mut tmp_value,content);
-        Ok(tmp_value)
+        Ok(replace(&mut self.contents_slice[index],Some(new_content)))
     }
 
     pub fn create_content(&mut self,position:Position,mut new_content:T) -> Result<()> {
@@ -220,6 +217,14 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
 
     pub fn iter_contents_mut<'a>(&'a mut self) -> MapIterMut<'a,Option<T>>{
         MapIterMut::new(self.contents_slice.as_mut(),self.length, self.offset)
+    }
+
+    pub fn iter_bg<'a>(&'a self) -> MapIter<'a,Bg>{
+        MapIter::new(self.bg_slice.as_ref(),self.length, self.offset)
+    }
+
+    pub fn iter_bg_mut<'a>(&'a mut self) -> MapIterMut<'a,Bg>{
+        MapIterMut::new(self.bg_slice.as_mut(),self.length, self.offset)
     }
 }
 

@@ -25,6 +25,16 @@ impl Position {
         Position {x:x,y:y}
     }
 
+    ///
+    /// ```
+    /// use hexgrid::pos::Position;
+    /// assert_eq!(Position::new(1,1).symmetric_by(Position::new(1,0)),
+    ///            Position::new(1,-1))
+    /// ```
+    pub fn symmetric_by(&self,opposite:Position) -> Position {
+        2 * opposite - *self
+    }
+
     pub fn get_z(&self) -> i32 {
         - self.x - self.y
     }
