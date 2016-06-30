@@ -2,7 +2,7 @@ use error::{Error,Reason,Result};
 use pos::Position;
 use std::vec::Vec ;
 use std::iter;
-use std::mem::swap;
+use std::mem::{swap,replace};
 
 pub trait PositionAccessor {
     fn set_position(&mut self,new_position:Position);
@@ -28,8 +28,8 @@ pub struct MapIterMut<'a,T:'a>{
 }
 
 impl<'a,T> MapIterMut<'a,T>{
-    pub fn new(slice:&'a mut [T],length: (i32,i32),offset: (i32,i32)) -> MapIter<'a,T> {
-        MapIter {
+    pub fn new(slice:&'a mut [T],length: (i32,i32),offset: (i32,i32)) -> MapIterMut<'a,T> {
+        MapIterMut {
             current_index:0,
             slice:slice,
             length:length,
@@ -42,17 +42,17 @@ impl<'a,T> iter::Iterator for MapIterMut<'a,T> {
     type Item = (Position,&'a mut T) ;
     fn next(&mut self) -> Option<(Position,&'a mut T)> {
         let r = index_to_pos(self.current_index, self.length, self.offset);
-        /*match r {
+        match r {
             Err(err) if err == Error::new(Reason::OutOfRange) => None,
             Ok(pos) => {
-                let current_index = self.current_index;
+                let slice = replace(&mut self.slice, Default::default());
+                let (to_return, remaining) = slice.split_first_mut().unwrap();
                 self.current_index += 1 ;
-                Some((pos,&mut self.slice[current_index]))
+                self.slice = remaining;
+                Some((pos, to_return))
             },
             Err(_) => unreachable!()
-        }*/
-        // TODO Make it work
-        None        
+        }
     }
 }
 
@@ -218,8 +218,8 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
         MapIter::new(self.contents_slice.as_ref(),self.length, self.offset)
     }
 
-    pub fn iter_contents_mut<'a>(&'a mut self) -> MapIter<'a,Option<T>>{
-        MapIter::new(self.contents_slice.as_mut(),self.length, self.offset)
+    pub fn iter_contents_mut<'a>(&'a mut self) -> MapIterMut<'a,Option<T>>{
+        MapIterMut::new(self.contents_slice.as_mut(),self.length, self.offset)
     }
 }
 
@@ -316,5 +316,10 @@ mod tests {
                       .filter(|&(_,dummy_option)| dummy_option.is_some())
                       .count(),
                    2);
+        for (pos,ref mut opt) in map.iter_contents_mut()
+                     .filter(|&(_,ref dummy_option)| dummy_option.is_some()) {
+            let ref mut dummy = opt.as_mut().unwrap();
+            dummy.name.push_str("pote");
+        }
     }
 }
