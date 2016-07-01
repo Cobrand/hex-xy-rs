@@ -361,10 +361,12 @@ mod tests {
                       .count(),
                    2);
         // count 2 dummies
-        for (pos,mut opt) in map.iter_contents_mut()
-                     .filter(|&(_,ref dummy_option)| dummy_option.is_some()) {
-            *opt = None;
-            // delete the 2 dummies
+        {
+            let iter = map.iter_mut().filter(|&(_,(ref dummy,_))| dummy.is_some());
+            for (pos,(mut opt, mut bg)) in iter {
+                *opt = None ;
+                // delete 2 dummies
+            }
         }
         assert_eq!(map.iter_contents()
                       .filter(|&(_,ref dummy_option)| dummy_option.is_some())
