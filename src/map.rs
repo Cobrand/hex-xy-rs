@@ -13,72 +13,37 @@ pub trait AllowContent {
     fn is_content_allowed() -> bool ;
 }
 
-pub struct MapIter<'a,T:'a>{
+pub struct MapIter<I>{
+    iter:I,
     current_index:usize,
-    slice:&'a [T],
     length: (i32,i32),
-    offset: (i32,i32)
+    offset: Position
 }
 
-pub struct MapIterMut<'a,T:'a>{
-    current_index:usize,
-    slice:&'a mut [T],
-    length: (i32,i32),
-    offset: (i32,i32)
-}
-
-impl<'a,T> MapIterMut<'a,T>{
-    pub fn new(slice:&'a mut [T],length: (i32,i32),offset: (i32,i32)) -> MapIterMut<'a,T> {
-        MapIterMut {
-            current_index:0,
-            slice:slice,
-            length:length,
-            offset:offset
-        }
-    }
-}
-
-impl<'a,T> iter::Iterator for MapIterMut<'a,T> {
-    type Item = (Position,&'a mut T) ;
-    fn next(&mut self) -> Option<(Position,&'a mut T)> {
-        let r = index_to_pos(self.current_index, self.length, self.offset);
-        match r {
+impl<I> iter::Iterator for MapIter<I> where I : iter::Iterator {
+    type Item = (Position,<I as Iterator>::Item) ;
+    #[inline]
+    fn next(&mut self) -> Option<(Position, <I as Iterator>::Item)> {
+        let position = index_to_pos(self.current_index, self.length, self.offset);
+        match position {
+            Ok(position) => self.iter.next().map(|a| {
+                let ret = (position, a);
+                self.current_index += 1;
+                ret
+            }),
             Err(err) if err == Error::new(Reason::OutOfRange) => None,
-            Ok(pos) => {
-                let slice = replace(&mut self.slice, Default::default());
-                let (to_return, remaining) = slice.split_first_mut().unwrap();
-                self.current_index += 1 ;
-                self.slice = remaining;
-                Some((pos, to_return))
-            },
             Err(_) => unreachable!()
         }
     }
 }
 
-impl<'a,T> MapIter<'a,T>{
-    pub fn new(slice:&'a [T],length: (i32,i32),offset: (i32,i32)) -> MapIter<'a,T> {
+impl<I> MapIter<I> where I : iter::Iterator {
+    pub fn new(iter:I,length: (i32,i32),offset: Position) -> MapIter<I> {
         MapIter {
             current_index:0,
-            slice:slice,
+            iter:iter,
             length:length,
             offset:offset
-        }
-    }
-}
-
-impl<'a,T:'a> iter::Iterator for MapIter<'a,T> {
-    type Item = (Position,&'a T) ;
-    fn next(&mut self) -> Option<(Position,&'a T)> {
-        let r = index_to_pos(self.current_index, self.length, self.offset);
-        match r {
-            Err(err) if err == Error::new(Reason::OutOfRange) => None,
-            Ok(pos) => {
-                let current_index = self.current_index;
-                self.current_index += 1 ;
-                Some((pos,&self.slice[current_index]))
-            },
-            Err(_) => unreachable!()
         }
     }
 }
@@ -87,11 +52,11 @@ pub struct Map<T : PositionAccessor,Bg : Default> {
     contents_slice : Box<[Option<T>]>,
     bg_slice : Box<[Bg]>,
     length: (i32,i32),
-    offset: (i32,i32)
+    offset: Position
 }
 
 impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
-    pub fn new(length:(i32,i32),offset:(i32,i32)) -> Result<Map<T,Bg>> {
+    pub fn new(length:(i32,i32),offset:Position) -> Result<Map<T,Bg>> {
         if length.0 <= 0 || length.1 <= 0 {
             Err(Error::new(Reason::NegativeMapLength))
         } else {
@@ -269,7 +234,7 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
             Ok(())
         }
     }
-
+    /*
     pub fn iter_contents<'a>(&'a self) -> MapIter<'a,Option<T>>{
         MapIter::new(self.contents_slice.as_ref(),self.length, self.offset)
     }
@@ -293,9 +258,10 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
     pub fn iter_mut<'a>(&'a mut self) -> MapIterMut<'a,Bg>{
         unimplemented!()
     }
+    */
 }
 
-fn index_to_pos(index:usize,length:(i32,i32),offset:(i32,i32)) -> Result<Position> {
+fn index_to_pos(index:usize,length:(i32,i32),offset:Position) -> Result<Position> {
     debug_assert!(length.0 > 0 && length.1 > 0);
     if index >= (length.0 * length.1) as usize {
         Err(Error::new(Reason::OutOfRange))
