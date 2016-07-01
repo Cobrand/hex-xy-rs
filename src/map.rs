@@ -147,9 +147,10 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
     ///
     /// * `OutOfRange` if position is not valid
     /// * `MissingTarget` if Position has no content (`None`)
-    pub fn replace_content(&mut self,position:Position,new_content:T) -> Result<T> {
+    pub fn replace_content(&mut self,position:Position,mut new_content:T) -> Result<T> {
         let index = try!(self.pos_to_index(position));
         if self.contents_slice[index].is_some() {
+            new_content.set_position(position);
             let replaced = replace(&mut self.contents_slice[index],Some(new_content));
             Ok(replaced.expect("Unexpected None"))
         } else {
@@ -185,6 +186,7 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
         let ref mut content = self.contents_slice[index];
         match *content {
             None => {
+                new_content.set_position(position);
                 *content = Some(new_content);
                 Ok(())
             },
@@ -212,6 +214,8 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
             Err(Error::new(Reason::MissingTarget))
         } else {
             self.contents_slice.swap(index_1,index_2);
+            self.contents_slice[index_1].as_mut().unwrap().set_position(pos_2);
+            self.contents_slice[index_2].as_mut().unwrap().set_position(pos_1);
             Ok(())
         }
     }
@@ -232,6 +236,7 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
             Err(Error::new(Reason::AlreadyOccupied))
         } else {
             self.contents_slice.swap(index_from,index_to);
+            self.contents_slice[index_to].as_mut().unwrap().set_position(to);
             Ok(())
         }
     }
