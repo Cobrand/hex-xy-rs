@@ -126,7 +126,7 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
         index_to_pos(index, self.length, self.offset)
     }
 
-    pub fn get(&self,pos:Position) -> Result<(Option<&T>,&Bg)> {
+    pub fn get(&self,pos:Position) -> Result<(&Option<T>,&Bg)> {
         let contents = self.get_contents(pos);
         let bg = self.get_bg(pos);
         // dark voodoo magics next line, do not change
@@ -137,19 +137,14 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
         })
     }
 
-    pub fn get_contents(&self,pos:Position) -> Result<Option<&T>> {
+    pub fn get_contents(&self,pos:Position) -> Result<&Option<T>> {
         let index = try!(self.pos_to_index(pos));
-        match self.contents_slice[index] {
-            None => Ok(None),
-            Some(ref content) => Ok(Some(&content))
-        }
+        Ok(&self.contents_slice[index])
     }
 
-    pub fn get_contents_mut(&mut self,pos:Position) -> Result<Option<&mut T>> {
+    pub fn get_contents_mut(&mut self,pos:Position) -> Result<&mut Option<T>> {
         let index = try!(self.pos_to_index(pos));
-        let ref mut content : Option<T> = self.contents_slice[index];
-        let content : Option<&mut T> = content.as_mut();
-        Ok(content)
+        Ok(&mut self.contents_slice[index])
     }
 
     pub fn get_bg(&self,pos:Position) -> Result<&Bg> {
@@ -323,8 +318,9 @@ mod tests {
                    2);
         for (pos,ref mut opt) in map.iter_contents_mut()
                      .filter(|&(_,ref dummy_option)| dummy_option.is_some()) {
-            let ref mut dummy = opt.as_mut().unwrap();
-            dummy.name.push_str("pote");
+            **opt = None;
+            /*let ref mut dummy = opt.as_mut().unwrap();
+            dummy.name.push_str("pote");*/
         }
     }
 }
