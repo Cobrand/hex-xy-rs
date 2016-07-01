@@ -1,7 +1,8 @@
 use error::{Error,Reason,Result};
 use pos::Position;
 use std::vec::Vec ;
-use std::iter;
+use std::iter::{Iterator,Zip};
+use std::slice::{Iter,IterMut};
 use std::mem::replace;
 
 pub trait PositionAccessor {
@@ -20,7 +21,7 @@ pub struct MapIter<I>{
     offset: Position
 }
 
-impl<I> iter::Iterator for MapIter<I> where I : iter::Iterator {
+impl<I> Iterator for MapIter<I> where I : Iterator {
     type Item = (Position,<I as Iterator>::Item) ;
     #[inline]
     fn next(&mut self) -> Option<(Position, <I as Iterator>::Item)> {
@@ -37,7 +38,7 @@ impl<I> iter::Iterator for MapIter<I> where I : iter::Iterator {
     }
 }
 
-impl<I> MapIter<I> where I : iter::Iterator {
+impl<I> MapIter<I> where I : Iterator {
     pub fn new(iter:I,length: (i32,i32),offset: Position) -> MapIter<I> {
         MapIter {
             current_index:0,
@@ -234,31 +235,32 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
             Ok(())
         }
     }
-    /*
-    pub fn iter_contents<'a>(&'a self) -> MapIter<'a,Option<T>>{
-        MapIter::new(self.contents_slice.as_ref(),self.length, self.offset)
+
+    pub fn iter_contents(&self) -> MapIter<Iter<Option<T>>> {
+        MapIter::new(self.contents_slice.iter(),self.length, self.offset)
     }
 
-    pub fn iter_contents_mut<'a>(&'a mut self) -> MapIterMut<'a,Option<T>>{
-        MapIterMut::new(self.contents_slice.as_mut(),self.length, self.offset)
+    pub fn iter_contents_mut(&mut self) -> MapIter<IterMut<Option<T>>> {
+        MapIter::new(self.contents_slice.iter_mut(),self.length, self.offset)
     }
 
-    pub fn iter_bg<'a>(&'a self) -> MapIter<'a,Bg>{
-        MapIter::new(self.bg_slice.as_ref(),self.length, self.offset)
+    pub fn iter_bg(&self) -> MapIter<Iter<Bg>> {
+        MapIter::new(self.bg_slice.iter(),self.length, self.offset)
     }
 
-    pub fn iter_bg_mut<'a>(&'a mut self) -> MapIterMut<'a,Bg>{
-        MapIterMut::new(self.bg_slice.as_mut(),self.length, self.offset)
+    pub fn iter_bg_mut(&mut self) -> MapIter<IterMut<Bg>> {
+        MapIter::new(self.bg_slice.iter_mut(),self.length, self.offset)
     }
 
-    pub fn iter<'a>(&'a self) -> MapIter<'a,Bg>{
-        unimplemented!()
+    pub fn iter(&self) -> MapIter<Zip<Iter<Option<T>>,Iter<Bg>>> {
+        let zipped_iter = self.contents_slice.iter().zip(self.bg_slice.iter()) ;
+        MapIter::new(zipped_iter,self.length, self.offset)
     }
 
-    pub fn iter_mut<'a>(&'a mut self) -> MapIterMut<'a,Bg>{
-        unimplemented!()
+    pub fn iter_mut(&mut self) -> MapIter<Zip<IterMut<Option<T>>,IterMut<Bg>>> {
+        let zipped_iter = self.contents_slice.iter_mut().zip(self.bg_slice.iter_mut()) ;
+        MapIter::new(zipped_iter,self.length, self.offset)
     }
-    */
 }
 
 fn index_to_pos(index:usize,length:(i32,i32),offset:Position) -> Result<Position> {
@@ -334,7 +336,7 @@ mod tests {
     }
 
     pub fn sample_map() -> Map<Dummy,Bg> {
-        Map::new((10,10),(-5,-5)).unwrap()
+        Map::new((10,10),Position::new(-5,-5)).unwrap()
     }
 
     #[test]
