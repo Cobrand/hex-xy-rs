@@ -77,6 +77,16 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
         }
     }
 
+    pub fn from_iter<I>(iter:I,length:(i32,i32),offset:Position) -> Result<Map<T,Bg>> where I : IntoIterator<Item=(Position,(T,Bg))> {
+        let mut map = try!(Self::new(length,offset));
+        for (pos,(content,bg)) in iter {
+            try!(map.create_content(pos,content));
+            let mut map_bg = map.get_bg_mut(pos).unwrap();
+            *map_bg = bg ;
+        }
+        Ok(map)
+    }
+
     fn pos_to_index(&self,pos:Position) -> Result<usize> {
         debug_assert!(self.length.0 > 0 && self.length.1 > 0);
         let tmp_pos = pos - Position::from(self.offset) ;
