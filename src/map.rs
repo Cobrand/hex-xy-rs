@@ -122,46 +122,97 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
         }
     }
 
+    #[allow(dead_code)]
     fn index_to_pos(&self,index:usize) -> Result<Position> {
         index_to_pos(index, self.length, self.offset)
     }
 
-    pub fn get(&self,pos:Position) -> Result<(&Option<T>,&Bg)> {
-        let contents = self.get_contents(pos);
-        let bg = self.get_bg(pos);
-        // dark voodoo magics next line, do not change
-        contents.and_then(|opt|{
-            bg.map(|bg|{
-                (opt,bg)
-            })
-        })
+    /// # Errors
+    ///
+    /// * `OutOfRange` if position is not valid
+    pub fn get_mut(&mut self,pos:Position) -> Result<(&mut Option<T>,&mut Bg)> {
+        let index = try!(self.pos_to_index(pos));
+        Ok((&mut self.contents_slice[index],&mut self.bg_slice[index]))
     }
 
+    /// # Errors
+    ///
+    /// * `OutOfRange` if position is not valid
+    pub fn get(&self,pos:Position) -> Result<(&Option<T>,&Bg)> {
+        let index = try!(self.pos_to_index(pos));
+        Ok((&self.contents_slice[index],&self.bg_slice[index]))
+    }
+
+    /// # Errors
+    ///
+    /// * `OutOfRange` if position is not valid
     pub fn get_contents(&self,pos:Position) -> Result<&Option<T>> {
         let index = try!(self.pos_to_index(pos));
         Ok(&self.contents_slice[index])
     }
 
+    /// # Errors
+    ///
+    /// * `OutOfRange` if position is not valid
     pub fn get_contents_mut(&mut self,pos:Position) -> Result<&mut Option<T>> {
         let index = try!(self.pos_to_index(pos));
         Ok(&mut self.contents_slice[index])
     }
 
+    /// # Errors
+    ///
+    /// * `OutOfRange` if position is not valid
     pub fn get_bg(&self,pos:Position) -> Result<&Bg> {
         let index = try!(self.pos_to_index(pos));
         Ok(&self.bg_slice[index])
     }
 
+    /// # Errors
+    ///
+    /// * `OutOfRange` if position is not valid
     pub fn get_bg_mut(&mut self,pos:Position) -> Result<&mut Bg>{
         let index = try!(self.pos_to_index(pos));
         Ok(&mut self.bg_slice[index])
     }
 
-    pub fn replace_content(&mut self,position:Position,new_content:T) -> Result<Option<T>> {
+    /// Replace a `Position` with a new content.
+    ///
+    /// # Errors
+    ///
+    /// * `OutOfRange` if position is not valid
+    /// * `MissingTarget` if Position has no content (`None`)
+    pub fn replace_content(&mut self,position:Position,new_content:T) -> Result<T> {
         let index = try!(self.pos_to_index(position));
-        Ok(replace(&mut self.contents_slice[index],Some(new_content)))
+        if self.contents_slice[index].is_some() {
+            let replaced = replace(&mut self.contents_slice[index],Some(new_content));
+            Ok(replaced.expect("Unexpected None"))
+        } else {
+            Err(Error::new(Reason::MissingTarget))
+        }
     }
 
+    /// Extract a content at `Position` and replace it with `None`.
+    ///
+    /// # Errors
+    ///
+    /// * `OutOfRange` if position is not valid
+    /// * `MissingTarget` if Position has no content (`None`)
+    pub fn extract_content(&mut self,position:Position) -> Result<T> {
+        let index = try!(self.pos_to_index(position));
+        if self.contents_slice[index].is_some() {
+            let ref mut content : Option<T> = self.contents_slice[index];
+            Ok(replace(content,None).unwrap())
+        } else {
+            Err(Error::new(Reason::MissingTarget))
+        }
+    }
+
+    /// Extract a content at `Position` and replace it with `None`.
+    ///
+    /// # Errors
+    ///
+    /// * `OutOfRange` if position is not valid
+    /// * `MissingTarget` if Position has no content (`None`)
     pub fn create_content(&mut self,position:Position,mut new_content:T) -> Result<()> {
         new_content.set_position(position);
         let index = try!(self.pos_to_index(position));
@@ -177,6 +228,12 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
         }
     }
 
+    /// Swap 2 elements.
+    ///
+    /// # Errors
+    ///
+    /// * `OutOfRange` if one or more positions is not valid
+    /// * `MissingTarget` if one the 2 position has no content (`None`)
     pub fn swap_contents(&mut self,pos_1:Position,pos_2:Position) -> Result<()> {
         let index_1 = try!(self.pos_to_index(pos_1));
         let index_2 = try!(self.pos_to_index(pos_2));
@@ -193,6 +250,13 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
         }
     }
 
+    /// Move an element from a position to another
+    ///
+    /// # Errors
+    ///
+    /// * `OutOfRange` if one or more positions are not valid
+    /// * `MissingTarget` if the initial position has no element
+    /// * `AlreadyOccupied` if the final position is busy
     pub fn move_contents(&mut self,from:Position,to:Position) -> Result<()> {
         let index_from = try!(self.pos_to_index(from));
         let index_to = try!(self.pos_to_index(to));
@@ -220,6 +284,14 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
 
     pub fn iter_bg_mut<'a>(&'a mut self) -> MapIterMut<'a,Bg>{
         MapIterMut::new(self.bg_slice.as_mut(),self.length, self.offset)
+    }
+
+    pub fn iter<'a>(&'a self) -> MapIter<'a,Bg>{
+        unimplemented!()
+    }
+
+    pub fn iter_mut<'a>(&'a mut self) -> MapIterMut<'a,Bg>{
+        unimplemented!()
     }
 }
 
@@ -273,6 +345,7 @@ pub fn test_index_to_pos(){
 mod tests {
     use super::*;
     use pos::Position;
+    use error::*;
     use std::string::String;
     #[derive(Debug)]
     pub struct Dummy {
@@ -311,16 +384,24 @@ mod tests {
         };
         map.create_content(Position::new(0,0),dummy_1).unwrap();
         map.create_content(Position::new(2,0),dummy_2).unwrap();
+        // create 2 dummies and swap their position
         map.swap_contents(Position::new(2,0), Position::new(0,0)).unwrap();
+        assert_eq!(map.swap_contents(Position::new(3,0), Position::new(0,0)).unwrap_err(),
+                   Error::new(Reason::MissingTarget));
         assert_eq!(map.iter_contents()
-                      .filter(|&(_,dummy_option)| dummy_option.is_some())
+                      .filter(|&(_,ref dummy_option)| dummy_option.is_some())
                       .count(),
                    2);
-        for (pos,ref mut opt) in map.iter_contents_mut()
+        // count 2 dummies
+        for (pos,mut opt) in map.iter_contents_mut()
                      .filter(|&(_,ref dummy_option)| dummy_option.is_some()) {
-            **opt = None;
-            /*let ref mut dummy = opt.as_mut().unwrap();
-            dummy.name.push_str("pote");*/
+            *opt = None;
+            // delete the 2 dummies
         }
+        assert_eq!(map.iter_contents()
+                      .filter(|&(_,ref dummy_option)| dummy_option.is_some())
+                      .count(),
+                   0);
+        // count 0 dummies
     }
 }
