@@ -11,7 +11,7 @@ pub trait PositionAccessor {
 }
 
 pub trait AllowContent {
-    fn is_content_allowed() -> bool ;
+    fn is_content_allowed(&self) -> bool ;
 }
 
 pub struct MapIter<I>{
@@ -49,14 +49,14 @@ impl<I> MapIter<I> where I : Iterator {
     }
 }
 
-pub struct Map<T : PositionAccessor,Bg : Default> {
+pub struct Map<T : PositionAccessor,Bg : Default + AllowContent > {
     contents_slice : Box<[Option<T>]>,
     bg_slice : Box<[Bg]>,
     length: (i32,i32),
     offset: Position
 }
 
-impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default {
+impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default + AllowContent {
     pub fn new(length:(i32,i32),offset:Position) -> Result<Map<T,Bg>> {
         if length.0 <= 0 || length.1 <= 0 {
             Err(Error::new(Reason::NegativeMapLength))
@@ -339,6 +339,16 @@ mod tests {
     #[derive(Debug,Default)]
     pub struct Bg {
         pub kind:String
+    }
+
+    impl AllowContent for Bg {
+        fn is_content_allowed(&self) -> bool {
+            if self.kind == "Obstacle" {
+                false
+            } else {
+                true
+            }
+        }
     }
 
     impl PositionAccessor for Dummy {
