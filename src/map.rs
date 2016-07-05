@@ -21,6 +21,15 @@ pub struct MapIter<I>{
     offset: Position
 }
 
+pub enum PositionStatus {
+    /// Bg has position allowed and no element is at this Position
+    Empty,
+    /// Bg has position allowed but an element is already at this position
+    Busy,
+    /// Bg does not allow content at this Position
+    Forbidden
+}
+
 impl<I> Iterator for MapIter<I> where I : Iterator {
     type Item = (Position,<I as Iterator>::Item) ;
     #[inline]
@@ -101,6 +110,18 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default + AllowContent {
     #[allow(dead_code)]
     fn index_to_pos(&self,index:usize) -> Result<Position> {
         index_to_pos(index, self.length, self.offset)
+    }
+
+    fn get_unchecked(&self,index:usize) -> (&Option<T>,&Bg) {
+        unsafe {
+            (self.contents_slice.get_unchecked(index),self.bg_slice.get_unchecked(index))
+        }
+    }
+
+    fn get_unchecked_mut(&mut self,index:usize) -> (&mut Option<T>,&mut Bg) {
+        unsafe {
+            (self.contents_slice.get_unchecked_mut(index),self.bg_slice.get_unchecked_mut(index))
+        }
     }
 
     /// # Errors
@@ -228,6 +249,11 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default + AllowContent {
             self.contents_slice[index_2].as_mut().unwrap().set_position(pos_1);
             Ok(())
         }
+    }
+
+    pub fn position_status(&self,position:Position) -> Result<PositionStatus> {
+        let index = try!(self.pos_to_index(position));
+        Ok(PositionStatus::Empty)
     }
 
     /// Move an element from a position to another
