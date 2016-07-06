@@ -7,6 +7,7 @@ pub enum Reason {
     OutOfRange,
     AlreadyOccupied,
     MissingTarget,
+    ForbiddenLocation,
     UnknownReason
 }
 
@@ -37,6 +38,9 @@ impl ::std::error::Error for Error {
             },
             Reason::AlreadyOccupied => {
                 "this position is already occupied by something else"
+            },
+            Reason::ForbiddenLocation => {
+                "this position cannot allow contents to be inside"
             },
             Reason::UnknownReason => {
                 "this should never happen"

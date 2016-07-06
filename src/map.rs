@@ -86,6 +86,18 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default + AllowContent {
         }
     }
 
+    pub fn position_status(&self,position:Position) -> Result<PositionStatus> {
+        let index = try!(self.pos_to_index(position));
+        let (contents, bg) = self.get_unchecked(index);
+        let result = match *contents {
+            Some(_) => PositionStatus::Busy,
+            None if bg.is_content_allowed() => PositionStatus::Empty,
+            None if !bg.is_content_allowed() => PositionStatus::Forbidden,
+            _ => unreachable!()
+        };
+        Ok(result)
+    }
+
     pub fn from_iter<I>(iter:I,length:(i32,i32),offset:Position) -> Result<Map<T,Bg>> where I : IntoIterator<Item=(Position,(T,Bg))> {
         let mut map = try!(Self::new(length,offset));
         for (pos,(content,bg)) in iter {
@@ -112,12 +124,14 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default + AllowContent {
         index_to_pos(index, self.length, self.offset)
     }
 
+    #[inline]
     fn get_unchecked(&self,index:usize) -> (&Option<T>,&Bg) {
         unsafe {
             (self.contents_slice.get_unchecked(index),self.bg_slice.get_unchecked(index))
         }
     }
 
+    #[inline]
     fn get_unchecked_mut(&mut self,index:usize) -> (&mut Option<T>,&mut Bg) {
         unsafe {
             (self.contents_slice.get_unchecked_mut(index),self.bg_slice.get_unchecked_mut(index))
@@ -210,10 +224,18 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default + AllowContent {
     /// # Errors
     ///
     /// * `OutOfRange` if position is not valid
-    /// * `MissingTarget` if Position has no content (`None`)
+    /// * `AlreadyOccupied` if Position
     pub fn create_content(&mut self,position:Position,mut new_content:T) -> Result<()> {
         new_content.set_position(position);
         let index = try!(self.pos_to_index(position));
+        try!(
+            match self.position_status(position) {
+                Ok(PositionStatus::Empty) => Ok(()),
+                Ok(PositionStatus::Busy) => Err(Error::new(Reason::AlreadyOccupied)),
+                Ok(PositionStatus::Forbidden) => Err(Error::new(Reason::ForbiddenLocation)),
+                Err(_) => unreachable!()
+            }
+        );
         let ref mut content = self.contents_slice[index];
         match *content {
             None => {
@@ -251,11 +273,6 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default + AllowContent {
         }
     }
 
-    pub fn position_status(&self,position:Position) -> Result<PositionStatus> {
-        let index = try!(self.pos_to_index(position));
-        Ok(PositionStatus::Empty)
-    }
-
     /// Move an element from a position to another
     ///
     /// # Errors
@@ -266,6 +283,14 @@ impl<T,Bg> Map<T,Bg> where T : PositionAccessor, Bg : Default + AllowContent {
     pub fn move_contents(&mut self,from:Position,to:Position) -> Result<()> {
         let index_from = try!(self.pos_to_index(from));
         let index_to = try!(self.pos_to_index(to));
+        let status_to = try!(self.position_status(to));
+        try!(
+            match status_to {
+                PositionStatus::Empty => Ok(()),
+                PositionStatus::Busy => Err(Error::new(Reason::AlreadyOccupied)),
+                PositionStatus::Forbidden => Err(Error::new(Reason::ForbiddenLocation ))
+            }
+        );
         if self.contents_slice[index_from].is_none() {
             Err(Error::new(Reason::MissingTarget))
         } else if self.contents_slice[index_to].is_some() {
@@ -401,8 +426,29 @@ mod tests {
             pos:Position::default(),
             name:String::from("test_dummy_2")
         };
+        let dummy_3 = Dummy {
+            pos:Position::default(),
+            name:String::from("test_dummy_3")
+        };
+        let dummy_4 = Dummy {
+            pos:Position::default(),
+            name:String::from("test_dummy_4")
+        };
         map.create_content(Position::new(0,0),dummy_1).unwrap();
         map.create_content(Position::new(2,0),dummy_2).unwrap();
+        assert_eq!(map.get_contents(Position::new(2,0)).unwrap().as_ref().unwrap().get_position(),
+                   Position::new(2,0));
+
+        let err = map.create_content(Position::new(2,0),dummy_3);
+        assert_eq!(err.unwrap_err(),
+                   Error::new(Reason::AlreadyOccupied));
+
+        map.get_bg_mut(Position::new(4,0)).unwrap().kind = String::from("Obstacle");
+
+        let err = map.create_content(Position::new(4,0),dummy_4);
+        assert_eq!(err.unwrap_err(),
+                   Error::new(Reason::ForbiddenLocation));
+
         // create 2 dummies and swap their position
         map.swap_contents(Position::new(2,0), Position::new(0,0)).unwrap();
         assert_eq!(map.swap_contents(Position::new(3,0), Position::new(0,0)).unwrap_err(),
